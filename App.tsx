@@ -6,7 +6,8 @@ import PreviewEngine from './components/PreviewEngine';
 import { 
   Send, Loader2, Terminal, Folder, MessageSquare, Eye, Share2, Download, 
   ArrowLeft, FileCode, Smartphone, Monitor, Menu, X, Bot, Zap, LayoutDashboard, 
-  LogOut, Plus, Code, Save, Trash2, User as UserIcon, Lock, ImageIcon, Sparkles
+  LogOut, Plus, Code, Save, Trash2, User as UserIcon, Lock, ImageIcon, Sparkles,
+  Rocket, Shield, Database
 } from 'lucide-react';
 
 // --- INITIAL CONSTANTS ---
@@ -32,6 +33,112 @@ const INITIAL_APP_STATE: AppSchema = {
   description: "A new project",
   code: INITIAL_CODE
 };
+
+// --- LANDING PAGE COMPONENT ---
+const LandingPage = ({ onStart, onLogin, onSignup }: { onStart: () => void, onLogin: () => void, onSignup: () => void }) => (
+  <div className="min-h-screen bg-[#09090b] text-white overflow-y-auto font-sans">
+    {/* Nav */}
+    <nav className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-50">
+       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
+               <Bot className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl tracking-tight">AMy <span className="text-orange-500">AI</span></span>
+          </div>
+          <div className="flex items-center gap-4">
+             <button onClick={onLogin} className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:block">Log In</button>
+             <button onClick={onSignup} className="text-sm font-medium bg-white text-black px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">Sign Up</button>
+          </div>
+       </div>
+    </nav>
+
+    {/* Hero */}
+    <section className="pt-20 pb-32 px-4 text-center relative overflow-hidden">
+       {/* Background Effects */}
+       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-orange-600/20 blur-[120px] rounded-full pointer-events-none opacity-50"></div>
+       
+       <div className="relative z-10 max-w-4xl mx-auto">
+         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-orange-300 mb-8">
+            <Sparkles className="w-3 h-3" />
+            <span>Now with Auto-Image Generation</span>
+         </div>
+         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight">
+           Build <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">Web Apps</span><br />
+           at the Speed of Thought
+         </h1>
+         <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+           Describe your idea in plain English. AMy AI writes the code, designs the UI, creates the database structure, and generates assets instantly.
+         </p>
+         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button onClick={onStart} className="w-full sm:w-auto px-8 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-semibold text-lg transition-all shadow-lg shadow-orange-900/20 flex items-center justify-center gap-2">
+              <Rocket className="w-5 h-5" /> Start Building for Free
+            </button>
+            <button onClick={onSignup} className="w-full sm:w-auto px-8 py-4 bg-[#18181b] hover:bg-[#202022] text-white border border-white/10 rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2">
+               Create Account
+            </button>
+         </div>
+       </div>
+    </section>
+
+    {/* Features */}
+    <section className="py-24 bg-[#0c0c0e] border-t border-white/5">
+       <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">Everything you need to ship</h2>
+            <p className="text-gray-400">From concept to code without the headache.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+             <FeatureCard 
+               icon={<Zap className="w-6 h-6 text-yellow-400" />}
+               title="Instant Generation"
+               desc="From text prompt to fully functional HTML/JS code in seconds. No waiting for compilations."
+             />
+             <FeatureCard 
+               icon={<ImageIcon className="w-6 h-6 text-pink-400" />}
+               title="AI Asset Creation"
+               desc="Automatically generates professional product images, icons, and graphics for your app."
+             />
+             <FeatureCard 
+               icon={<Code className="w-6 h-6 text-blue-400" />}
+               title="Clean Code Export"
+               desc="Get clean, editable HTML, Tailwind CSS, and JavaScript. Download and host anywhere."
+             />
+             <FeatureCard 
+               icon={<Shield className="w-6 h-6 text-green-400" />}
+               title="Auth & Security"
+               desc="Built-in authentication flows and secure mock backend simulation for testing."
+             />
+             <FeatureCard 
+               icon={<Database className="w-6 h-6 text-purple-400" />}
+               title="Project Management"
+               desc="Save your projects, iterate on versions, and manage your portfolio."
+             />
+             <FeatureCard 
+               icon={<Smartphone className="w-6 h-6 text-orange-400" />}
+               title="Responsive Design"
+               desc="All generated apps are mobile-first and fully responsive out of the box."
+             />
+          </div>
+       </div>
+    </section>
+    
+    {/* Footer */}
+    <footer className="py-10 text-center text-gray-600 border-t border-white/5 text-sm bg-[#09090b]">
+      &copy; {new Date().getFullYear()} AMy AI Inc. All rights reserved.
+    </footer>
+  </div>
+);
+
+const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
+  <div className="p-8 rounded-2xl bg-[#18181b] border border-white/5 hover:border-orange-500/20 transition-all hover:bg-[#1a1a1d] group">
+    <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+      {icon}
+    </div>
+    <h3 className="text-xl font-bold mb-3 text-gray-100">{title}</h3>
+    <p className="text-gray-400 leading-relaxed">{desc}</p>
+  </div>
+);
 
 export default function App() {
   // --- GLOBAL STATE ---
@@ -146,6 +253,19 @@ export default function App() {
     setView('editor');
   };
 
+  const handleDownload = () => {
+    if (!activeProject) return;
+    const blob = new Blob([activeProject.code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(activeProject.name || 'app').replace(/\s+/g, '-').toLowerCase()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
@@ -235,11 +355,6 @@ export default function App() {
             if (prompt) {
                const base64 = await generateImage(prompt);
                if (base64) {
-                  // Replace in the actual code string
-                  // We do a string replace to preserve the full HTML structure including scripts
-                  // Note: simple replace might be risky if multiple images have same prompt, 
-                  // but in this context usually unique. Using ID or unique placeholders is better, 
-                  // but direct DOM manipulation on the string is safest.
                   const oldTag = img.outerHTML;
                   img.setAttribute('src', base64);
                   img.removeAttribute('data-image-prompt');
@@ -312,7 +427,8 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen w-full bg-[#09090b] text-white font-sans selection:bg-orange-500/30">
       
-      {/* --- HEADER --- */}
+      {/* --- HEADER (ONLY SHOW INSIDE APP) --- */}
+      {view !== 'landing' && view !== 'login' && view !== 'signup' && (
       <header className="h-14 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-4 z-20 flex-shrink-0">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => currentUser ? setView('dashboard') : setView('landing')}>
           <div className="flex items-center gap-2.5">
@@ -330,12 +446,17 @@ export default function App() {
                  <Zap className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
                  <span className="text-xs font-medium text-orange-300">{currentUser.credits} Credits</span>
                </div>
-               <div className="flex items-center gap-3">
-                 <button onClick={() => setView('dashboard')} className="text-gray-400 hover:text-white transition-colors" title="Dashboard">
+               <div className="flex items-center gap-2">
+                 {activeProject && (
+                    <button onClick={handleDownload} className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors" title="Export Code">
+                       <Download className="w-5 h-5" />
+                    </button>
+                 )}
+                 <button onClick={() => setView('dashboard')} className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors" title="Dashboard">
                    <LayoutDashboard className="w-5 h-5" />
                  </button>
-                 <div className="h-6 w-[1px] bg-white/10"></div>
-                 <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors" title="Sign Out">
+                 <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
+                 <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-white/5 transition-colors" title="Sign Out">
                    <LogOut className="w-5 h-5" />
                  </button>
                </div>
@@ -348,17 +469,33 @@ export default function App() {
            )}
         </div>
       </header>
+      )}
 
       {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 overflow-hidden relative">
         
+        {/* VIEW: LANDING (Guest) */}
+        {view === 'landing' && !currentUser && (
+           <LandingPage onStart={createNewProject} onLogin={() => setView('login')} onSignup={() => setView('signup')} />
+        )}
+
         {/* VIEW: AUTH (LOGIN/SIGNUP) */}
         {(view === 'login' || view === 'signup') && (
           <div className="absolute inset-0 z-50 bg-[#09090b] flex items-center justify-center p-4">
+             {/* Back Button for Auth */}
+             <button onClick={() => setView('landing')} className="absolute top-8 left-8 text-gray-400 hover:text-white flex items-center gap-2">
+               <ArrowLeft className="w-4 h-4" /> Back to Home
+             </button>
+
              <div className="w-full max-w-md bg-[#0c0c0e] border border-white/10 rounded-2xl p-8 shadow-2xl">
-                <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                  {view === 'login' ? 'Welcome Back' : 'Create Account'}
-                </h2>
+                <div className="text-center mb-6">
+                   <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                      <Bot className="w-7 h-7 text-white" />
+                   </div>
+                   <h2 className="text-2xl font-bold text-white">
+                     {view === 'login' ? 'Welcome Back' : 'Create Account'}
+                   </h2>
+                </div>
                 <form onSubmit={view === 'login' ? handleLogin : handleSignup} className="space-y-4">
                   {view === 'signup' && (
                     <div>
@@ -429,30 +566,6 @@ export default function App() {
 
              </div>
           </div>
-        )}
-
-        {/* VIEW: LANDING (Guest) */}
-        {view === 'landing' && !currentUser && (
-           <div className="absolute inset-0 bg-[#09090b] flex flex-col items-center justify-center p-4 text-center">
-             <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center mb-6 shadow-2xl shadow-orange-900/40">
-                <Bot className="w-10 h-10 text-white" />
-             </div>
-             <h1 className="text-4xl sm:text-6xl font-bold text-white mb-4 tracking-tight">
-               Build apps with <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500">AMy AI</span>
-             </h1>
-             <p className="text-lg text-gray-400 max-w-xl mb-10">
-               Generate full-stack functional web apps in seconds. No coding required. Sign up for free credits.
-             </p>
-             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-               <button onClick={createNewProject} className="flex-1 bg-[#18181b] border border-white/10 hover:border-orange-500/50 hover:bg-[#202022] text-white py-4 rounded-xl transition-all flex items-center justify-center gap-2 group">
-                 <Code className="w-5 h-5 text-gray-400 group-hover:text-orange-400" />
-                 <span>Try Demo (3 Free)</span>
-               </button>
-               <button onClick={() => setView('signup')} className="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-xl transition-all font-semibold shadow-lg shadow-orange-900/20">
-                 Get Started Free
-               </button>
-             </div>
-           </div>
         )}
 
         {/* VIEW: EDITOR */}
