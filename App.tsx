@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { streamAppConfig } from './services/geminiService';
+import { streamAppConfig, generateImage } from './services/geminiService';
 import { authService, usageService, projectService } from './services/mockBackend';
-import { AppSchema, ChatMessage, User, Project, ViewState } from './types';
+import { AppSchema, ChatMessage, User, Project, ViewState, GeneratedImage } from './types';
 import PreviewEngine from './components/PreviewEngine';
 import { 
   Send, Loader2, Terminal, Folder, MessageSquare, Eye, Share2, Download, 
   ArrowLeft, FileCode, Smartphone, Monitor, Menu, X, Bot, Zap, LayoutDashboard, 
-  LogOut, Plus, Code, Save, Trash2, User as UserIcon, Lock
+  LogOut, Plus, Code, Save, Trash2, User as UserIcon, Lock, ImageIcon, Sparkles
 } from 'lucide-react';
 
 // --- INITIAL CONSTANTS ---
@@ -43,6 +43,7 @@ export default function App() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationPhase, setGenerationPhase] = useState<'idle' | 'coding' | 'assets'>('idle');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [currentCode, setCurrentCode] = useState(INITIAL_CODE);
   
@@ -70,7 +71,7 @@ export default function App() {
   // --- SCROLL CHAT ---
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory, mobileActiveTab]);
+  }, [chatHistory, mobileActiveTab, generationPhase]);
 
   // --- ACTIONS ---
 
@@ -122,6 +123,7 @@ export default function App() {
         description: 'Temporary',
         code: INITIAL_CODE,
         messages: [],
+        images: [],
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
@@ -174,6 +176,7 @@ export default function App() {
     setChatHistory(newHistory);
     setPrompt('');
     setIsGenerating(true);
+    setGenerationPhase('coding');
 
     const botMsgId = Date.now();
     setChatHistory(prev => [...prev, { 
@@ -190,7 +193,7 @@ export default function App() {
       }
 
       let fullText = "";
-      const stream = streamAppConfig(userMsg.content); // Use existing service
+      const stream = streamAppConfig(userMsg.content);
 
       for await (const chunk of stream) {
         if (chunk) {
@@ -201,16 +204,71 @@ export default function App() {
         }
       }
 
-      // 4. Parse & Save
+      // 4. Parse Code
       const jsonMatch = fullText.match(/\{[\s\S]*\}/);
       const jsonToParse = jsonMatch ? jsonMatch[0] : fullText;
       const config = JSON.parse(jsonToParse) as AppSchema;
       
-      setCurrentCode(config.code);
+      let processedCode = config.code;
+      setCurrentCode(processedCode);
+
+      // 5. ASSET GENERATION PHASE
+      setGenerationPhase('assets');
+      
+      // Parse HTML to find images needing generation
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(processedCode, 'text/html');
+      const imagesToGenerate = Array.from(doc.querySelectorAll('img[data-image-prompt]'));
+
+      if (imagesToGenerate.length > 0) {
+         setChatHistory(prev => prev.map(msg => 
+            msg.timestamp === botMsgId 
+              ? { ...msg, streamContent: msg.streamContent + "\n\n🎨 Generating product images..." } 
+              : msg
+          ));
+
+         const newImages: GeneratedImage[] = [];
+
+         // Process sequentially to not hit rate limits too hard (or parallel if API allows)
+         for (const img of imagesToGenerate) {
+            const prompt = img.getAttribute('data-image-prompt');
+            if (prompt) {
+               const base64 = await generateImage(prompt);
+               if (base64) {
+                  // Replace in the actual code string
+                  // We do a string replace to preserve the full HTML structure including scripts
+                  // Note: simple replace might be risky if multiple images have same prompt, 
+                  // but in this context usually unique. Using ID or unique placeholders is better, 
+                  // but direct DOM manipulation on the string is safest.
+                  const oldTag = img.outerHTML;
+                  img.setAttribute('src', base64);
+                  img.removeAttribute('data-image-prompt');
+                  const newTag = img.outerHTML;
+                  
+                  // Use robust replacement in the big string
+                  processedCode = processedCode.replace(oldTag, newTag);
+
+                  // Save to project assets
+                  newImages.push({
+                     id: 'img_' + Date.now() + Math.random(),
+                     prompt: prompt,
+                     url: base64,
+                     createdAt: Date.now()
+                  });
+               }
+            }
+         }
+
+         // Update code with real images
+         setCurrentCode(processedCode);
+         if (activeProject) {
+            activeProject.images = [...(activeProject.images || []), ...newImages];
+         }
+      }
       
       const successMsg: ChatMessage = { 
         role: 'assistant', 
-        content: `Built "${config.appName}". Preview updated!`, 
+        content: `Built "${config.appName}" with ${imagesToGenerate.length} generated assets. Preview updated!`, 
         timestamp: botMsgId 
       };
 
@@ -223,8 +281,9 @@ export default function App() {
           ...activeProject,
           name: config.appName,
           description: config.description,
-          code: config.code,
-          messages: finalHistory
+          code: processedCode,
+          messages: finalHistory,
+          images: activeProject.images
         };
         await projectService.updateProject(updatedProject);
         setActiveProject(updatedProject);
@@ -242,6 +301,7 @@ export default function App() {
       ));
     } finally {
       setIsGenerating(false);
+      setGenerationPhase('idle');
     }
   };
 
@@ -420,7 +480,9 @@ export default function App() {
                           <div className="bg-orange-500/10 px-3 py-2 border-b border-orange-500/20 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Loader2 className="w-3.5 h-3.5 text-orange-400 animate-spin" />
-                                <span className="text-xs font-mono text-orange-300">BUILDING...</span>
+                                <span className="text-xs font-mono text-orange-300">
+                                  {generationPhase === 'assets' ? 'GENERATING ASSETS...' : 'BUILDING...'}
+                                </span>
                               </div>
                           </div>
                           <div className="p-3">
@@ -541,8 +603,12 @@ function DashboardProjectList({ userId, onLoad, onDelete }: { userId: string, on
       {projects.map(proj => (
         <div key={proj.id} className="bg-[#0c0c0e] border border-white/5 rounded-xl p-5 hover:border-orange-500/30 transition-all group relative">
            <div className="flex items-start justify-between mb-3">
-             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center border border-white/5">
-                <FileCode className="w-5 h-5 text-gray-400" />
+             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-800 to-black flex items-center justify-center border border-white/5 overflow-hidden">
+               {proj.images && proj.images.length > 0 ? (
+                 <img src={proj.images[0].url} className="w-full h-full object-cover" />
+               ) : (
+                 <FileCode className="w-5 h-5 text-gray-400" />
+               )}
              </div>
              <button onClick={(e) => { e.stopPropagation(); onDelete(proj.id); }} className="text-gray-600 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                <Trash2 className="w-4 h-4" />

@@ -132,6 +132,7 @@ export const projectService = {
       description: description || "No description",
       code: "", // Starts empty
       messages: [],
+      images: [],
       createdAt: Date.now(),
       updatedAt: Date.now()
     };

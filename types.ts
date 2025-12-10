@@ -15,6 +15,13 @@ export interface ChatMessage {
 
 // --- NEW TYPES FOR APP BUILDER ---
 
+export interface GeneratedImage {
+  id: string;
+  prompt: string;
+  url: string; // Base64 data URL
+  createdAt: number;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -30,6 +37,7 @@ export interface Project {
   description: string;
   code: string;
   messages: ChatMessage[]; // Save chat history context
+  images: GeneratedImage[]; // Saved generated images
   createdAt: number;
   updatedAt: number;
 }
