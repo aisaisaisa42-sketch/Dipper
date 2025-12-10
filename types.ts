@@ -9,6 +9,34 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  isStreaming?: boolean; // To mark a message as currently generating
-  streamContent?: string; // The raw content being streamed
+  isStreaming?: boolean;
+  streamContent?: string;
 }
+
+// --- NEW TYPES FOR APP BUILDER ---
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  credits: number;
+  createdAt: number;
+}
+
+export interface Project {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  code: string;
+  messages: ChatMessage[]; // Save chat history context
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export type ViewState = 'landing' | 'login' | 'signup' | 'dashboard' | 'editor';
