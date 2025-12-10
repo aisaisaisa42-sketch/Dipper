@@ -8,35 +8,60 @@ const SYSTEM_INSTRUCTION = `
 You are an expert Full Stack Web Developer and UI/UX Designer. 
 Your task is to generate fully functional, runnable single-page web applications based on user prompts.
 
-RULES:
-1. **Output Format**: Return a single valid JSON object containing the app details and the full source code.
+CRITICAL RULES:
+1. **Output Format**: You MUST return a SINGLE valid JSON object. Do not add any text outside the JSON.
    - Schema: { "appName": "String", "description": "String", "code": "String (Full HTML)" }
 2. **Tech Stack**:
-   - Use **HTML5** for structure.
-   - Use **Tailwind CSS** (via CDN) for styling. ALWAYS include the script: <script src="https://cdn.tailwindcss.com"></script>
-   - Use **Vanilla JavaScript** for logic within <script> tags.
-   - Use **Lucide Icons** (via CDN). <script src="https://unpkg.com/lucide@latest"></script> and call \`lucide.createIcons()\` at the end of the body.
+   - Structure: HTML5 (Single file).
+   - Styling: Tailwind CSS (via CDN). <script src="https://cdn.tailwindcss.com"></script>
+   - Icons: Lucide Icons (via CDN). <script src="https://unpkg.com/lucide@latest"></script> (Call \`lucide.createIcons()\` at end of body).
+   - Logic: Vanilla JavaScript inside <script> tags.
 3. **Functionality**:
    - The app must be **fully functional**. Buttons must work, forms must validate/submit (mock logic), interactivity must happen.
    - **NO PLACEHOLDERS** in logic. Write the actual JS.
-   - **NO MOCKUPS**. The code must run immediately in an iframe.
-4. **IMAGES (CRITICAL)**:
-   - When the app needs a product image, hero image, or any visual, **YOU MUST GENERATE IT**.
+4. **IMAGES (MANDATORY)**:
+   - When the app needs a visual (products, hero, avatars), **YOU MUST GENERATE IT**.
    - Use this EXACT format for image tags:
-     \`<img src="https://placehold.co/600x400?text=Generating..." data-image-prompt="[Detailed description of the image]" class="w-full h-auto object-contain rounded-lg shadow-md" alt="Image">\`
-   - **data-image-prompt** is REQUIRED. Describe the image in detail (e.g., "A modern sleek coffee maker, white background, studio lighting" or "Lifestyle shot of a happy person using the app").
-   - Ensure images are responsive (\`w-full h-auto\`).
+     \`<img src="https://placehold.co/600x400?text=Generating..." data-image-prompt="[Detailed description of the image]" class="..." alt="...">\`
+   - **data-image-prompt** is REQUIRED. Describe the image in detail.
 5. **Design**:
-   - Make it look beautiful, modern, and professional (Stripe/Vercel aesthetic).
-   - Use nice gradients, shadows, and rounded corners.
+   - Modern, clean, "SaaS" aesthetic. Use gradients, shadows, rounded corners.
 
-Example JSON Output:
+Example JSON:
 {
   "appName": "Coffee Shop",
   "description": "A coffee shop landing page",
-  "code": "<!DOCTYPE html>...<img src='https://placehold.co/600x400' data-image-prompt='Steaming cappuccino cup on wooden table, overhead view, high quality' class='w-full h-auto object-cover'>..."
+  "code": "<!DOCTYPE html><html>...</html>"
 }
 `;
+
+// Helper: robustly clean and parse JSON from LLM output
+export function cleanAndParseJSON(text: string): AppSchema {
+  // 1. Remove markdown code blocks (```json ... ```)
+  let clean = text.replace(/```json/g, '').replace(/```/g, '');
+  
+  // 2. Find the first '{' and last '}' to strip extraneous text
+  const firstOpen = clean.indexOf('{');
+  const lastClose = clean.lastIndexOf('}');
+  
+  if (firstOpen !== -1 && lastClose !== -1) {
+    clean = clean.substring(firstOpen, lastClose + 1);
+  }
+
+  // 3. Attempt parse
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    // 4. Fallback: simple escape fix if newlines in strings caused issues (basic heuristic)
+    try {
+        // sometimes undefined newlines break json
+        const fixed = clean.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t"); 
+        return JSON.parse(fixed);
+    } catch (e2) {
+        throw new Error("Failed to parse AI response as JSON.");
+    }
+  }
+}
 
 // Generator function for streaming
 export async function* streamAppConfig(prompt: string) {
@@ -62,10 +87,9 @@ export async function* streamAppConfig(prompt: string) {
   }
 }
 
-// Function to generate image from prompt
-export async function generateImage(prompt: string): Promise<string | null> {
+// Function to generate image from prompt with internal retry
+export async function generateImage(prompt: string, attempt = 1): Promise<string | null> {
   try {
-    // We use gemini-2.5-flash-image for generation as per guidelines for general image tasks
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image', 
       contents: {
@@ -74,8 +98,6 @@ export async function generateImage(prompt: string): Promise<string | null> {
         ],
       },
       config: {
-        // Checking guidelines: responseMimeType is NOT supported for nano banana series
-        // aspect ratio can be set. Let's default to square or 4:3.
         imageConfig: {
           aspectRatio: "4:3"
         }
@@ -91,7 +113,12 @@ export async function generateImage(prompt: string): Promise<string | null> {
     }
     return null;
   } catch (error) {
-    console.error("Image Generation Error:", error);
+    console.error(`Image Generation Error (Attempt ${attempt}):`, error);
+    if (attempt < 3) {
+        // Simple exponential backoff: 500ms, 1000ms
+        await new Promise(r => setTimeout(r, attempt * 500));
+        return generateImage(prompt, attempt + 1);
+    }
     return null; 
   }
 }

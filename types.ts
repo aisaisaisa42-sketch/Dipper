@@ -22,11 +22,27 @@ export interface GeneratedImage {
   createdAt: number;
 }
 
+export interface Transaction {
+  id: string;
+  userId: string;
+  amount: number; // Credits bought
+  cost: number; // Cost in USD
+  type: 'purchase' | 'daily_reset' | 'bonus';
+  timestamp: number;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  credits: number;
+  photoURL?: string; 
+  
+  // Credit System
+  freeCredits: number;     // Resets daily
+  purchasedCredits: number; // Bought via payment
+  lastDailyReset: number;   // Timestamp of last reset
+  
+  isBanned?: boolean; 
   createdAt: number;
 }
 
@@ -36,8 +52,8 @@ export interface Project {
   name: string;
   description: string;
   code: string;
-  messages: ChatMessage[]; // Save chat history context
-  images: GeneratedImage[]; // Saved generated images
+  messages: ChatMessage[]; 
+  images: GeneratedImage[]; 
   createdAt: number;
   updatedAt: number;
 }
@@ -47,4 +63,4 @@ export interface AuthResponse {
   token: string;
 }
 
-export type ViewState = 'landing' | 'login' | 'signup' | 'dashboard' | 'editor';
+export type ViewState = 'landing' | 'login' | 'signup' | 'dashboard' | 'editor' | 'admin' | 'pricing';
