@@ -1,0 +1,5 @@
+{
+  "name": "AppForge AI",
+  "description": "A no-code AI app builder. Describe your app in natural language, and Gemini will generate the UI and code structure instantly.",
+  "requestFramePermissions": []
+}
