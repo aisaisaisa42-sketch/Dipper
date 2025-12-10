@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Ensure routing works on subpaths if needed, though usually / is fine -->
     <base href="/" />
     <title>AMy AI - AI App Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -35,13 +36,12 @@
     </script>
     <style>
       body {
-        background-color: #0a0a0a;
+        background-color: #09090b; /* Match app background to prevent flash */
         color: #e5e5e5;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Prevents double scrollbars with the app layout */
+        overflow: hidden; 
       }
-      /* Custom scrollbar */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -60,21 +60,19 @@
   <script type="importmap">
 {
   "imports": {
+    "vite": "https://aistudiocdn.com/vite@^7.2.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.2",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://aistudiocdn.com/vite@^7.2.7"
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <!-- CRITICAL FIX: Entry point for the React Application -->
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
