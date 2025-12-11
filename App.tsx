@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { streamAppConfig, generateImage, cleanAndParseJSON } from './services/geminiService';
-import { authService, usageService, projectService, adminService, creditService } from './services/mockBackend';
+import { authService, usageService, projectService, adminService, creditService } from './services/backend';
 import { AppSchema, ChatMessage, User, Project, ViewState, GeneratedImage, Transaction } from './types';
 import PreviewEngine from './components/PreviewEngine';
 import { 
@@ -8,7 +8,7 @@ import {
   ArrowLeft, FileCode, Smartphone, Monitor, Menu, X, Bot, Zap, LayoutDashboard, 
   LogOut, Plus, Code, Save, Trash2, User as UserIcon, Lock, ImageIcon, Sparkles,
   Rocket, Shield, Database, RefreshCw, AlertTriangle, Search, CheckCircle, Ban,
-  CreditCard, Check
+  CreditCard, Check, Globe
 } from 'lucide-react';
 
 const INITIAL_CODE = `<!DOCTYPE html>
@@ -32,8 +32,45 @@ const ADMIN_EMAIL = "brightgiggletv@gmail.com";
 
 // --- COMPONENTS ---
 
+const AdminDashboard = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  useEffect(() => { adminService.getAllUsers().then(setUsers); }, []);
+  
+  return (
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto min-h-screen">
+      <h2 className="text-3xl font-bold mb-6">Admin Console</h2>
+      <div className="bg-[#0c0c0e] border border-white/10 rounded-xl overflow-hidden overflow-x-auto">
+        <table className="w-full text-left text-sm text-gray-400">
+          <thead className="bg-white/5 text-gray-200">
+            <tr>
+              <th className="p-4 whitespace-nowrap">User</th>
+              <th className="p-4 whitespace-nowrap">Email</th>
+              <th className="p-4 whitespace-nowrap">Credits (Free/Paid)</th>
+              <th className="p-4 whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map(u => (
+              <tr key={u.id} className="border-t border-white/5 hover:bg-white/5">
+                <td className="p-4 font-medium text-white">{u.name}</td>
+                <td className="p-4">{u.email}</td>
+                <td className="p-4"><span className="text-orange-400">{u.freeCredits}</span> / <span className="text-blue-400">{u.purchasedCredits}</span></td>
+                <td className="p-4">
+                  <button onClick={async () => { await adminService.toggleUserBan(u.id); setUsers(await adminService.getAllUsers()); }} className={`px-3 py-1 rounded text-xs font-bold ${u.isBanned ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
+                    {u.isBanned ? 'Unban' : 'Ban'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const LandingPage = ({ onStart, onLogin, onSignup }: { onStart: () => void, onLogin: () => void, onSignup: () => void }) => (
-  <div className="min-h-screen bg-[#09090b] text-white overflow-y-auto font-sans">
+  <div className="min-h-screen bg-[#09090b] text-white font-sans flex flex-col">
     <nav className="border-b border-white/5 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-50">
        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -48,7 +85,7 @@ const LandingPage = ({ onStart, onLogin, onSignup }: { onStart: () => void, onLo
           </div>
        </div>
     </nav>
-    <section className="pt-20 pb-32 px-4 text-center relative overflow-hidden">
+    <section className="flex-1 flex flex-col items-center justify-center pt-12 pb-24 px-4 text-center relative overflow-hidden">
        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-orange-600/20 blur-[120px] rounded-full pointer-events-none opacity-50"></div>
        <div className="relative z-10 max-w-4xl mx-auto">
          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-orange-300 mb-8">
@@ -72,7 +109,7 @@ const LandingPage = ({ onStart, onLogin, onSignup }: { onStart: () => void, onLo
          </div>
        </div>
     </section>
-    <footer className="py-10 text-center text-gray-600 border-t border-white/5 text-sm bg-[#09090b]">
+    <footer className="py-10 text-center text-gray-600 border-t border-white/5 text-sm bg-[#09090b] mt-auto">
       &copy; {new Date().getFullYear()} AMy AI Inc. All rights reserved.
     </footer>
   </div>
@@ -88,17 +125,19 @@ const PricingPage = ({ onPurchase, onClose }: { onPurchase: (amount: number, cos
   };
 
   return (
-    <div className="absolute inset-0 bg-[#09090b] z-50 overflow-y-auto p-4 flex flex-col items-center justify-center">
-       <button onClick={onClose} className="absolute top-6 left-6 text-gray-400 hover:text-white flex items-center gap-2">
-          <ArrowLeft className="w-5 h-5" /> Back to Dashboard
-       </button>
+    <div className="min-h-screen bg-[#09090b] z-50 overflow-y-auto p-4 flex flex-col items-center">
+       <div className="w-full max-w-5xl flex justify-start mb-8 pt-4">
+          <button onClick={onClose} className="text-gray-400 hover:text-white flex items-center gap-2">
+              <ArrowLeft className="w-5 h-5" /> Back to Dashboard
+          </button>
+       </div>
        
        <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">Upgrade your power</h2>
           <p className="text-gray-400">Choose a credit package that fits your needs.</p>
        </div>
 
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full mb-12">
           {[
             { credits: 10, cost: 5, color: 'from-blue-500 to-cyan-500' },
             { credits: 50, cost: 20, color: 'from-orange-500 to-amber-500', popular: true },
@@ -134,111 +173,6 @@ const PricingPage = ({ onPurchase, onClose }: { onPurchase: (amount: number, cos
   );
 };
 
-const AdminDashboard = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [view, setView] = useState<'users' | 'sales'>('users');
-  const [refresh, setRefresh] = useState(0);
-
-  useEffect(() => {
-    adminService.getAllUsers().then(setUsers);
-    adminService.getAllTransactions().then(setTransactions);
-  }, [refresh]);
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
-        <Shield className="w-8 h-8 text-orange-500" /> Admin Control Panel
-      </h1>
-
-      <div className="flex gap-4 mb-6">
-        <button onClick={() => setView('users')} className={`px-4 py-2 rounded-lg font-medium ${view === 'users' ? 'bg-orange-600 text-white' : 'bg-[#18181b] text-gray-400'}`}>Users</button>
-        <button onClick={() => setView('sales')} className={`px-4 py-2 rounded-lg font-medium ${view === 'sales' ? 'bg-orange-600 text-white' : 'bg-[#18181b] text-gray-400'}`}>Sales Log</button>
-      </div>
-
-      <div className="bg-[#0c0c0e] border border-white/10 rounded-xl overflow-hidden">
-         {view === 'users' ? (
-           <table className="w-full text-left border-collapse">
-             <thead>
-               <tr className="bg-[#18181b] text-gray-400 text-xs uppercase">
-                 <th className="p-4">User</th>
-                 <th className="p-4">Email</th>
-                 <th className="p-4">Free / Paid</th>
-                 <th className="p-4">Status</th>
-                 <th className="p-4 text-right">Actions</th>
-               </tr>
-             </thead>
-             <tbody className="divide-y divide-white/5">
-               {users.map(user => (
-                 <tr key={user.id} className="hover:bg-white/5 transition-colors">
-                   <td className="p-4 flex items-center gap-3 text-white">
-                      <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-500 font-bold overflow-hidden">
-                        {user.photoURL ? <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover"/> : user.name[0]}
-                      </div>
-                      {user.name}
-                   </td>
-                   <td className="p-4 text-gray-400">{user.email}</td>
-                   <td className="p-4 font-mono text-orange-300">{user.freeCredits} <span className="text-gray-600">|</span> {user.purchasedCredits}</td>
-                   <td className="p-4">
-                     {user.isBanned ? (
-                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-red-400 text-xs font-medium"><Ban className="w-3 h-3" /> Banned</span>
-                     ) : (
-                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-500/10 text-green-400 text-xs font-medium"><CheckCircle className="w-3 h-3" /> Active</span>
-                     )}
-                   </td>
-                   <td className="p-4 text-right flex items-center justify-end gap-2">
-                     <button onClick={() => {
-                        const amt = prompt("Add paid credits:");
-                        if (amt) { adminService.updateUserCredits(user.id, parseInt(amt)); setRefresh(r => r + 1); }
-                     }} className="p-2 hover:bg-white/10 rounded-lg text-blue-400"><Plus className="w-4 h-4" /></button>
-                     <button onClick={() => {
-                        adminService.toggleUserBan(user.id); setRefresh(r => r + 1);
-                     }} className="p-2 hover:bg-white/10 rounded-lg text-red-400"><Ban className="w-4 h-4" /></button>
-                   </td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-         ) : (
-            <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#18181b] text-gray-400 text-xs uppercase">
-                <th className="p-4">Date</th>
-                <th className="p-4">User ID</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Cost</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {transactions.map(tx => (
-                <tr key={tx.id} className="hover:bg-white/5">
-                  <td className="p-4 text-gray-400 text-sm">{new Date(tx.timestamp).toLocaleString()}</td>
-                  <td className="p-4 text-gray-500 font-mono text-xs">{tx.userId}</td>
-                  <td className="p-4 uppercase text-xs font-bold text-green-400">{tx.type}</td>
-                  <td className="p-4 text-white font-bold">+{tx.amount} Credits</td>
-                  <td className="p-4 text-orange-400">${tx.cost}</td>
-                </tr>
-              ))}
-              {transactions.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-gray-500">No transactions yet.</td></tr>}
-            </tbody>
-          </table>
-         )}
-      </div>
-    </div>
-  );
-};
-
-// --- DASHBOARD COMPONENTS ---
-const DashboardProjectCount = ({ userId }: { userId: string }) => {
-  const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
-    projectService.getUserProjects(userId).then(projects => setCount(projects.length));
-  }, [userId]);
-  if (count === null) return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
-  return <span className="text-3xl font-bold text-white mb-1">{count}</span>;
-};
-
 const DashboardProjectList = ({ userId, onLoad, onDelete }: { userId: string, onLoad: (p: Project) => void, onDelete: (id: string) => Promise<void> }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -269,11 +203,43 @@ const DashboardProjectList = ({ userId, onLoad, onDelete }: { userId: string, on
   );
 };
 
+const ViewerPage = ({ projectId, onBack }: { projectId: string, onBack: () => void }) => {
+    const [project, setProject] = useState<Project | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        projectService.getPublicProject(projectId).then(p => {
+            if (p) setProject(p);
+            else setError("Project not found or private.");
+            setLoading(false);
+        });
+    }, [projectId]);
+
+    if (loading) return <div className="h-screen bg-[#09090b] flex items-center justify-center text-white"><Loader2 className="animate-spin" /></div>;
+    if (error) return <div className="h-screen bg-[#09090b] flex flex-col items-center justify-center text-white gap-4"><AlertTriangle className="w-8 h-8 text-red-500" />{error} <button onClick={onBack} className="text-blue-400 underline">Go Home</button></div>;
+
+    return (
+        <div className="h-screen flex flex-col bg-[#09090b]">
+            <header className="h-14 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                     <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full text-white"><ArrowLeft className="w-5 h-5"/></button>
+                     <span className="font-bold text-white">{project?.name}</span>
+                </div>
+                <a href="/" className="text-xs text-gray-500 hover:text-white">Built with AMy AI</a>
+            </header>
+            <div className="flex-1 overflow-hidden relative">
+                <PreviewEngine code={project?.code || ""} />
+            </div>
+        </div>
+    );
+};
+
 // --- MAIN APP COMPONENT ---
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [view, setView] = useState<ViewState>('landing');
+  const [view, setView] = useState<ViewState | 'viewer'>('landing');
   const [isLoading, setIsLoading] = useState(true);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [prompt, setPrompt] = useState('');
@@ -284,13 +250,29 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
   const [mobileActiveTab, setMobileActiveTab] = useState<'editor' | 'preview'>('editor');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [viewerProjectId, setViewerProjectId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Check URL Params for Project ID (Viewer Mode)
+    const urlParams = new URLSearchParams(window.location.search);
+    const pid = urlParams.get('project');
+    if (pid) {
+        setViewerProjectId(pid);
+        setView('viewer');
+        setIsLoading(false);
+        return;
+    }
+
     const initAuth = async () => {
-      const user = await authService.getCurrentUser();
-      if (user) { setCurrentUser(user); setView('dashboard'); } 
-      else { setView('landing'); }
+      try {
+          const user = await authService.getCurrentUser();
+          if (user) { setCurrentUser(user); setView('dashboard'); } 
+          else { setView('landing'); }
+      } catch (e) {
+          console.error("Auth Init Error", e);
+          setView('landing');
+      }
       setIsLoading(false);
     };
     initAuth();
@@ -316,16 +298,10 @@ export default function App() {
     } catch (err: any) { alert(err.message); }
   };
 
-  const handlePurchase = async (amount: number, cost: number) => {
-    if (!currentUser) return;
-    try {
-      const updatedUser = await creditService.purchaseCredits(currentUser.id, amount, cost);
-      setCurrentUser(updatedUser);
-      alert(`Success! Added ${amount} credits.`);
-      setView('dashboard');
-    } catch (e: any) {
-      alert(e.message);
-    }
+  const handlePublish = async () => {
+      if (!activeProject) return;
+      const link = await projectService.publishProject(activeProject.id);
+      prompt("Project Published! Share this link:", link);
   };
 
   const handleGenerate = async () => {
@@ -334,13 +310,14 @@ export default function App() {
     if (currentUser) {
       if ((currentUser.freeCredits + currentUser.purchasedCredits) <= 0) {
         setChatHistory(prev => [...prev, { role: 'assistant', content: "❌ You have 0 credits. Please purchase more to continue.", timestamp: Date.now() }]);
-        // Optional: Auto open pricing
         if (confirm("Out of credits! Go to store?")) setView('pricing');
         return;
       }
     } else {
+      // Guest logic if allowed
       if (!usageService.checkGuestLimit()) {
-         setChatHistory(prev => [...prev, { role: 'assistant', content: "🔒 Guest limit reached. Sign up for 3 daily free credits!", timestamp: Date.now() }]);
+         alert("Guest limit reached. Please sign in.");
+         setView('signup');
          return;
       }
     }
@@ -354,7 +331,7 @@ export default function App() {
     const botMsgId = Date.now();
     setChatHistory(prev => [...prev, { role: 'assistant', content: "", timestamp: botMsgId, isStreaming: true, streamContent: "" }]);
 
-    // Deduct Credit BEFORE generation starts to prevent abuse
+    // Deduct Credit
     if (currentUser) {
         try {
           const updatedUser = await usageService.deductCredit(currentUser.id);
@@ -435,11 +412,17 @@ export default function App() {
 
   if (isLoading) return <div className="h-screen bg-black flex items-center justify-center text-white"><Loader2 className="animate-spin" /></div>;
 
+  if (view === 'viewer' && viewerProjectId) {
+      return <ViewerPage projectId={viewerProjectId} onBack={() => { window.location.href = '/'; }} />;
+  }
+
   return (
-    <div className="flex flex-col h-screen w-full bg-[#09090b] text-white font-sans selection:bg-orange-500/30">
+    // REMOVE FIXED HEIGHT from main container to allow scrolling on mobile
+    // Use min-h-screen instead
+    <div className={`flex flex-col w-full bg-[#09090b] text-white font-sans selection:bg-orange-500/30 ${view === 'editor' ? 'h-screen overflow-hidden' : 'min-h-screen overflow-y-auto'}`}>
       
       {view !== 'landing' && view !== 'login' && view !== 'signup' && (
-      <header className="h-14 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-4 z-20 flex-shrink-0">
+      <header className="h-14 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-4 z-20 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-4 cursor-pointer" onClick={() => currentUser ? setView('dashboard') : setView('landing')}>
           <div className="flex items-center gap-2.5">
             <div className="relative w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center border border-white/10 shadow-lg">
@@ -451,22 +434,27 @@ export default function App() {
         <div className="flex items-center gap-4">
            {currentUser ? (
              <>
-               {currentUser.email === ADMIN_EMAIL && <button onClick={() => setView('admin')} className="flex items-center gap-2 text-xs font-bold text-red-400 border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-full hover:bg-red-500/20"><Shield className="w-3 h-3" /> Admin</button>}
+               {currentUser.email === ADMIN_EMAIL && <button onClick={() => setView('admin')} className="hidden md:flex items-center gap-2 text-xs font-bold text-red-400 border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-full hover:bg-red-500/20"><Shield className="w-3 h-3" /> Admin</button>}
                
                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors" onClick={() => setView('pricing')}>
                  <Zap className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
                  <span className="text-xs font-medium text-orange-300">
-                    Free: {currentUser.freeCredits} | Paid: {currentUser.purchasedCredits}
+                    {currentUser.freeCredits + currentUser.purchasedCredits} Credits
                  </span>
                  <Plus className="w-3 h-3 text-orange-400" />
                </div>
 
                <div className="flex items-center gap-2">
-                 {activeProject && view === 'editor' && <button onClick={() => {}} className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5"><Download className="w-5 h-5" /></button>}
+                 {activeProject && view === 'editor' && (
+                     <>
+                        <button onClick={handlePublish} className="hidden md:flex items-center gap-2 text-xs font-medium text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg hover:bg-green-500/20 border border-green-500/20"><Globe className="w-3.5 h-3.5" /> Publish</button>
+                        <div className="h-6 w-[1px] bg-white/10 mx-1 hidden md:block"></div>
+                     </>
+                 )}
                  <button onClick={() => setView('dashboard')} className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/5"><LayoutDashboard className="w-5 h-5" /></button>
                  <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
                  <div className="flex items-center gap-2">
-                   {currentUser.photoURL && <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full border border-white/10" />}
+                   {currentUser.photoURL ? <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full border border-white/10" /> : <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold">{currentUser.name[0]}</div>}
                    <button onClick={() => { authService.signOut(); setCurrentUser(null); setView('landing'); }} className="text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-white/5"><LogOut className="w-5 h-5" /></button>
                  </div>
                </div>
@@ -481,26 +469,28 @@ export default function App() {
       </header>
       )}
 
-      <div className="flex-1 overflow-hidden relative">
+      {/* Main Content Area - Responsive */}
+      <div className={`flex-1 relative ${view === 'editor' ? 'overflow-hidden' : ''}`}>
         {view === 'landing' && !currentUser && <LandingPage onStart={() => setView('signup')} onLogin={() => setView('login')} onSignup={() => setView('signup')} />}
-        {view === 'admin' && currentUser?.email === ADMIN_EMAIL && <div className="absolute inset-0 bg-[#09090b] overflow-y-auto"><AdminDashboard /></div>}
-        {view === 'pricing' && <PricingPage onPurchase={handlePurchase} onClose={() => setView('dashboard')} />}
+        {view === 'admin' && currentUser?.email === ADMIN_EMAIL && <AdminDashboard />}
+        {view === 'pricing' && <PricingPage onPurchase={async (a, c) => { await creditService.purchaseCredits(currentUser!.id, a, c); alert("Purchased!"); setView('dashboard'); }} onClose={() => setView('dashboard')} />}
         
         {(view === 'login' || view === 'signup') && (
-          <div className="absolute inset-0 z-50 bg-[#09090b] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-[#09090b] flex items-center justify-center p-4">
              <button onClick={() => setView('landing')} className="absolute top-8 left-8 text-gray-400 hover:text-white flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Back to Home</button>
              <div className="w-full max-w-md bg-[#0c0c0e] border border-white/10 rounded-2xl p-8 shadow-2xl">
                 <div className="text-center mb-6">
                    <h2 className="text-2xl font-bold text-white">{view === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
                 </div>
                 <button onClick={handleGoogleAuth} className="w-full bg-white text-black font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 mb-4 hover:bg-gray-100 transition-colors">
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="G" />
                   Continue with Google
                 </button>
                 <div className="flex items-center gap-4 my-4"><div className="h-[1px] bg-white/10 flex-1"></div><span className="text-xs text-gray-500">OR</span><div className="h-[1px] bg-white/10 flex-1"></div></div>
                 <form onSubmit={(e) => handleAuth(view as 'login' | 'signup', e)} className="space-y-4">
-                  {view === 'signup' && <div><label className="text-xs text-gray-400">Name</label><input name="name" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white" /></div>}
-                  <div><label className="text-xs text-gray-400">Email</label><input name="email" type="email" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white" /></div>
-                  <div><label className="text-xs text-gray-400">Password</label><input name="password" type="password" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white" /></div>
+                  {view === 'signup' && <div><label className="text-xs text-gray-400">Name</label><input name="name" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500" /></div>}
+                  <div><label className="text-xs text-gray-400">Email</label><input name="email" type="email" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500" /></div>
+                  <div><label className="text-xs text-gray-400">Password</label><input name="password" type="password" required className="w-full bg-[#18181b] border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-orange-500" /></div>
                   <button type="submit" className="w-full bg-orange-600 hover:bg-orange-500 text-white font-medium py-2.5 rounded-lg mt-2">{view === 'login' ? 'Sign In' : 'Sign Up'}</button>
                 </form>
              </div>
@@ -508,8 +498,8 @@ export default function App() {
         )}
 
         {view === 'dashboard' && currentUser && (
-          <div className="absolute inset-0 bg-[#09090b] overflow-y-auto p-4 sm:p-8">
-             <div className="max-w-6xl mx-auto">
+          <div className="min-h-full p-4 sm:p-8">
+             <div className="max-w-6xl mx-auto pb-20">
                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                  <div className="bg-[#0c0c0e] border border-white/10 p-6 rounded-xl flex flex-col items-center justify-center text-center">
                     <div className="text-3xl font-bold text-white mb-1">{currentUser.freeCredits}</div>
@@ -533,9 +523,16 @@ export default function App() {
         )}
 
         {view === 'editor' && (
-          <div className="absolute inset-0 flex flex-col md:flex-row overflow-hidden">
-            <div className={`${mobileActiveTab === 'editor' ? 'flex' : 'hidden'} md:flex w-full md:w-[400px] flex-col border-r border-white/5 bg-[#0c0c0e] flex-shrink-0 z-10 relative h-full md:h-auto`}>
-              <div className="h-12 border-b border-white/5 flex items-center px-4 bg-[#0c0c0e] text-sm font-semibold">{activeProject?.name}</div>
+          <div className="absolute inset-0 flex flex-col md:flex-row overflow-hidden bg-[#09090b]">
+            {/* Editor Sidebar / Mobile Tab */}
+            <div className={`${mobileActiveTab === 'editor' ? 'flex' : 'hidden'} md:flex w-full md:w-[400px] flex-col border-r border-white/5 bg-[#0c0c0e] flex-shrink-0 z-10 relative h-full`}>
+              <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#0c0c0e] text-sm font-semibold shrink-0">
+                  <span className="truncate max-w-[200px]">{activeProject?.name}</span>
+                  <div className="flex md:hidden gap-2">
+                      <button onClick={handlePublish} className="text-green-400"><Share2 className="w-4 h-4" /></button>
+                      <button onClick={() => setView('dashboard')} className="text-gray-400"><X className="w-4 h-4" /></button>
+                  </div>
+              </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-20 md:pb-4 min-h-0">
                   {chatHistory.map((msg, idx) => (
                     <div key={idx} className={`flex flex-col gap-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -546,28 +543,32 @@ export default function App() {
                   ))}
                   <div ref={chatEndRef} />
               </div>
-              <div className="p-4 bg-[#09090b] border-t border-white/5 flex-shrink-0">
+              <div className="p-4 bg-[#09090b] border-t border-white/5 flex-shrink-0 mb-14 md:mb-0">
                 <div className="relative flex items-center bg-[#0c0c0e] rounded-xl border border-white/10 p-1.5">
                    <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGenerate(); } }} placeholder="Describe app..." className="w-full bg-transparent border-none text-sm text-gray-200 h-12 py-3 px-3 resize-none focus:ring-0" />
-                   <button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className="p-2.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-white">{isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</button>
+                   <button onClick={handleGenerate} disabled={isGenerating || !prompt.trim()} className="p-2.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-white flex-shrink-0">{isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</button>
                 </div>
               </div>
             </div>
+
+            {/* Preview / Code Area */}
             <div className={`${mobileActiveTab === 'preview' ? 'flex' : 'hidden'} md:flex flex-1 flex-col bg-[#09090b] relative min-w-0 border-l border-white/5 h-full`}>
-               <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#0c0c0e]">
+               <div className="h-12 border-b border-white/5 flex items-center justify-between px-4 bg-[#0c0c0e] shrink-0">
                   <div className="flex bg-[#18181b] rounded p-0.5 border border-white/5">
                     <button onClick={() => setViewMode('preview')} className={`px-3 py-1.5 rounded text-xs ${viewMode === 'preview' ? 'bg-[#27272a] text-white' : 'text-gray-500'}`}>Preview</button>
                     <button onClick={() => setViewMode('code')} className={`px-3 py-1.5 rounded text-xs ${viewMode === 'code' ? 'bg-[#27272a] text-white' : 'text-gray-500'}`}>Code</button>
                   </div>
                   {viewMode === 'preview' && <div className="hidden md:flex bg-[#18181b] rounded p-0.5 border border-white/5"><button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded ${previewDevice === 'desktop' ? 'bg-[#27272a] text-white' : 'text-gray-500'}`}><Monitor className="w-3.5 h-3.5" /></button><button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded ${previewDevice === 'mobile' ? 'bg-[#27272a] text-white' : 'text-gray-500'}`}><Smartphone className="w-3.5 h-3.5" /></button></div>}
                </div>
-               <div className="flex-1 bg-[#18181b] flex flex-col justify-center items-center overflow-hidden relative">
-                 {viewMode === 'preview' ? <div className={`transition-all duration-300 h-full w-full ${previewDevice === 'mobile' ? 'max-w-[375px] max-h-[812px] my-auto border-4 border-gray-800 rounded-[2rem] overflow-hidden bg-white' : ''}`}><PreviewEngine code={currentCode} /></div> : <div className="w-full h-full bg-[#0c0c0e] overflow-auto p-4"><pre className="text-xs font-mono text-blue-300 whitespace-pre-wrap">{currentCode}</pre></div>}
+               <div className="flex-1 bg-[#18181b] flex flex-col justify-center items-center overflow-hidden relative mb-14 md:mb-0">
+                 {viewMode === 'preview' ? <div className={`transition-all duration-300 h-full w-full ${previewDevice === 'mobile' ? 'max-w-[375px] max-h-[812px] my-auto border-4 border-gray-800 rounded-[2rem] overflow-hidden bg-white shadow-2xl' : ''}`}><PreviewEngine code={currentCode} /></div> : <div className="w-full h-full bg-[#0c0c0e] overflow-auto p-4"><pre className="text-xs font-mono text-blue-300 whitespace-pre-wrap">{currentCode}</pre></div>}
                </div>
             </div>
+            
+            {/* Mobile Bottom Nav */}
             <div className="md:hidden absolute bottom-0 left-0 right-0 h-14 bg-[#0c0c0e] border-t border-white/10 flex items-center justify-around z-50">
-               <button onClick={() => setMobileActiveTab('editor')} className={mobileActiveTab === 'editor' ? 'text-orange-500' : 'text-gray-500'}><MessageSquare className="w-5 h-5" /></button>
-               <button onClick={() => setMobileActiveTab('preview')} className={mobileActiveTab === 'preview' ? 'text-green-500' : 'text-gray-500'}><Eye className="w-5 h-5" /></button>
+               <button onClick={() => setMobileActiveTab('editor')} className={`flex flex-col items-center gap-1 ${mobileActiveTab === 'editor' ? 'text-orange-500' : 'text-gray-500'}`}><MessageSquare className="w-5 h-5" /><span className="text-[10px]">Chat</span></button>
+               <button onClick={() => setMobileActiveTab('preview')} className={`flex flex-col items-center gap-1 ${mobileActiveTab === 'preview' ? 'text-green-500' : 'text-gray-500'}`}><Eye className="w-5 h-5" /><span className="text-[10px]">Preview</span></button>
             </div>
           </div>
         )}
